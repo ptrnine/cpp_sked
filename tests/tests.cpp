@@ -45,8 +45,8 @@ TEST_CASE("every_second") {
     skd::sked sked;
     std::atomic_uint c = 0;
     sked.every().second([&] { ++c; });
-    std::this_thread::sleep_for(1s);
-    REQUIRE(c == 1);
+    std::this_thread::sleep_for(2s);
+    REQUIRE(c == 2);
 }
 
 TEST_CASE("once") {
