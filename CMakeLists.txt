@@ -27,3 +27,4 @@ if (BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+install(FILES src/cpp_sked.hpp DESTINATION include/)
