@@ -1,39 +1,24 @@
+#pragma once
+
 #include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <map>
 #include <thread>
 
-#include <signal.h>
+#include <csignal>
 
-#include <iostream>
-
-namespace skd
-{
-using std::chrono::time_point_cast;
-using std::chrono::seconds;
-using std::chrono::minutes;
-using std::chrono::hours;
+namespace skd {
 using std::chrono::days;
+using std::chrono::hours;
+using std::chrono::minutes;
+using std::chrono::seconds;
+using std::chrono::time_point_cast;
 using std::chrono::weeks;
 
-enum class week_e {
-    thursday = 0,
-    friday,
-    saturday,
-    sunday,
-    monday,
-    tuesday,
-    wednesday
-};
+enum class week_e { thursday = 0, friday, saturday, sunday, monday, tuesday, wednesday };
 
-enum class period_e {
-    second = 0,
-    minute,
-    hour,
-    day,
-    week
-};
+enum class period_e { second = 0, minute, hour, day, week };
 
 struct day_time {
     uint8_t hours;
@@ -41,11 +26,10 @@ struct day_time {
     uint8_t seconds;
 };
 
-namespace operators
-{
+namespace operators {
     constexpr day_time parse_day_time(const char* str_time, size_t size) {
         uint8_t nums[3] = {0, 0, 0};
-        size_t  num_i   = 0;
+        size_t num_i = 0;
 
         constexpr day_time error = {255, 255, 255};
 
@@ -92,7 +76,7 @@ namespace operators
     template <typename C, C... Cs>
     constexpr auto operator"" _dtm() {
         constexpr char str[sizeof...(Cs)] = {Cs...};
-        constexpr auto res                = parse_day_time(str, sizeof...(Cs));
+        constexpr auto res = parse_day_time(str, sizeof...(Cs));
         if constexpr (res.hours < 24 && res.minutes < 60 && res.seconds < 60)
             return res;
         else
@@ -107,35 +91,35 @@ struct period {
         case period_e::second: {
             auto now_seconds = time_point_cast<seconds>(now);
             auto next = now_seconds + second * multiplier;
-            if (next < now)
+            if (next <= now)
                 next += seconds{1};
             return next;
         }
         case period_e::minute: {
             auto now_minutes = time_point_cast<minutes>(now);
-            auto next        = now_minutes + minute * multiplier + second;
-            if (next < now)
+            auto next = now_minutes + minute * multiplier + second;
+            if (next <= now)
                 next += minutes{1};
             return next;
         }
         case period_e::hour: {
             auto now_hours = time_point_cast<hours>(now);
-            auto next      = now_hours + hour * multiplier + minute + second;
-            if (next < now)
+            auto next = now_hours + hour * multiplier + minute + second;
+            if (next <= now)
                 next += hours{1};
             return next;
         }
         case period_e::day: {
             auto now_days = time_point_cast<days>(now);
-            auto next     = now_days + day * multiplier + hour + minute + second;
-            if (next < now)
+            auto next = now_days + day * multiplier + hour + minute + second;
+            if (next <= now)
                 next += days{1};
             return next;
         }
         case period_e::week: {
             auto now_weeks = time_point_cast<weeks>(now);
             auto next = now_weeks + day + hour + minute + second;
-            if (next < now)
+            if (next <= now)
                 next += weeks{1};
             return next;
         }
@@ -165,11 +149,11 @@ public:
         sc(sked),
         period{
             .multiplier = every,
-            .period     = period_e::second,
-            .day        = days{0},
-            .hour       = hours{0},
-            .minute     = minutes{0},
-            .second     = seconds{0},
+            .period = period_e::second,
+            .day = days{0},
+            .hour = hours{0},
+            .minute = minutes{0},
+            .second = seconds{0},
         },
         once(ionce) {}
 
@@ -206,7 +190,7 @@ protected:
 
 private:
     std::function<bool()> handler;
-    bool                  once;
+    bool once;
 };
 
 template <typename ClockT, typename T>
@@ -241,7 +225,7 @@ public:
         if (int(this->period.period) < int(period_e::day))
             this->period.period = period_e::day;
 
-        this->period.hour   = hours{at_hour};
+        this->period.hour = hours{at_hour};
         this->period.minute = minutes{at_minute};
         this->period.second = seconds{at_second};
         return *this;
@@ -295,17 +279,17 @@ public:
 
     task_setter_time<ClockT, T, period_e::hour>& day(size_t at_hour = 0, size_t at_minute = 0, size_t at_second = 0) {
         this->period.period = period_e::day;
-        this->period.hour   = hours{at_hour};
+        this->period.hour = hours{at_hour};
         this->period.minute = minutes{at_minute};
         this->period.second = seconds{at_second};
         return *this;
     }
 
-#define DEF_WEEKDAY(NAME) \
+#define DEF_WEEKDAY(NAME)                                 \
     task_setter_time<ClockT, T, period_e::hour>& NAME() { \
-        this->period.period = period_e::week; \
-        this->period.day = days{int(week_e::NAME)}; \
-        return *this; \
+        this->period.period = period_e::week;             \
+        this->period.day = days{int(week_e::NAME)};       \
+        return *this;                                     \
     }
 
     DEF_WEEKDAY(monday)
@@ -328,8 +312,7 @@ namespace details {
         }
 
         static void handler(int signal) {
-            std::cout << std::endl;
-            //std::cerr << "Handle signal " << signal << std::endl;
+            // std::cerr << "Handle signal " << signal << std::endl;
             if (signal == SIGINT || signal == SIGTERM)
                 instance().shutdown();
         }
@@ -347,15 +330,15 @@ namespace details {
         }
 
         void setup_signals() {
-            struct sigaction action = {0};
-            action.sa_handler       = handler;
-            sigaction(SIGINT, &action, NULL);
-            sigaction(SIGTERM, &action, NULL);
+            struct sigaction action = {nullptr};
+            action.sa_handler = handler;
+            sigaction(SIGINT, &action, nullptr);
+            sigaction(SIGTERM, &action, nullptr);
         }
 
         void await_shutdown_signal() {
             std::unique_lock lock{mtx};
-            cv.wait(lock, [this]{ return working == false; });
+            cv.wait(lock, [this] { return working == false; });
         }
 
     private:
@@ -380,13 +363,15 @@ public:
     template <typename, typename, period_e>
     friend class task_setter_time;
 
-    using id_t                         = uint64_t;
+    using id_t = uint64_t;
     static inline constexpr id_t no_id = std::numeric_limits<id_t>::max();
 
     struct task_handler {
-        skd::period<ClockT>   period;
+        skd::period<ClockT> period;
         std::function<bool()> handler;
     };
+
+    sked(): t(&sked::run, this) {}
 
     template <typename... Ts>
     sked(Ts&&... tasks) {
@@ -399,7 +384,10 @@ public:
         await_for_shutdown_dtor = true;
     }
 
-    sked(): t(&sked::run, this) {}
+    sked(const sked&) = delete;
+    sked& operator=(const sked&) = delete;
+    sked(sked&&) = delete;
+    sked& operator=(sked&&) = delete;
 
     ~sked() {
         if (await_for_shutdown_dtor)
@@ -433,9 +421,9 @@ private:
 
     template <typename F>
     void push_task_safe(const period<ClockT>& p, F&& task) {
-        auto now      = ClockT::now();
+        auto now = ClockT::now();
         auto next_run = p.next_timepoint(now);
-        auto id       = next_id();
+        auto id = next_id();
 
         tasks.emplace(id, task_handler{p, std::forward<F>(task)});
         task_ids.emplace(next_run, id);
@@ -446,15 +434,15 @@ private:
 
         while (running.load(std::memory_order_relaxed)) {
             typename ClockT::time_point tp = tp.max();
-            id_t                        id = no_id;
+            id_t id = no_id;
 
             /* Find nearest time point */
             {
                 std::lock_guard lock{mtx};
                 if (!task_ids.empty()) {
                     auto begin = task_ids.begin();
-                    tp         = begin->first;
-                    id         = begin->second;
+                    tp = begin->first;
+                    id = begin->second;
                 }
             }
 
@@ -472,7 +460,7 @@ private:
 
                     /* Launch task */
                     bool delete_task = true;
-                    auto task_p      = tasks.find(id);
+                    auto task_p = tasks.find(id);
                     if (task_p != tasks.end())
                         delete_task = task_p->second.handler();
 
@@ -500,59 +488,14 @@ private:
     }
 
 private:
-    std::jthread            t;
-    mutable std::mutex      mtx;
+    std::jthread t;
+    mutable std::mutex mtx;
     std::condition_variable cv;
-    std::atomic_bool        running                 = true;
-    bool                    await_for_shutdown_dtor = false;
+    std::atomic_bool running = true;
+    bool await_for_shutdown_dtor = false;
 
-    std::map<id_t, task_handler>                     tasks;
+    std::map<id_t, task_handler> tasks;
     std::multimap<typename ClockT::time_point, id_t> task_ids;
-    id_t                                             id_counter = 0;
+    id_t id_counter = 0;
 };
 } // namespace skd
-
-
-struct fake_clock {
-public:
-    static fake_clock& instance() {
-        static fake_clock clock;
-        return clock;
-    }
-
-    static inline constexpr bool is_steady = std::chrono::system_clock::is_steady;
-    using rep = std::chrono::system_clock::rep;
-    using period = std::chrono::system_clock::period;
-    using duration = std::chrono::system_clock::duration;
-    using time_point = std::chrono::time_point<fake_clock>;
-
-    static time_point now() {
-        return instance().now_impl();
-    }
-
-    static void set_date(skd::week_e weekday, size_t hour, size_t minute, size_t second) {
-        instance().set_date_impl(weekday, hour, minute, second);
-    }
-
-private:
-    time_point now_impl() {
-        std::lock_guard lock{mtx};
-        auto t = std::chrono::system_clock::now() + shift;
-        return time_point{t.time_since_epoch()};
-    }
-
-    void set_date_impl(skd::week_e weekday, size_t hour, size_t minute, size_t second) {
-        auto real_now = std::chrono::system_clock::now();
-        auto week_now = time_point_cast<skd::weeks>(real_now);
-
-        auto ws1 = real_now - week_now;
-        auto ws2 =
-            skd::days{int(weekday)} + skd::hours{hour} + skd::minutes{minute} + skd::seconds{second};
-
-        std::lock_guard lock{mtx};
-        shift = ws2 - ws1;
-    }
-
-    std::mutex mtx;
-    std::chrono::system_clock::duration shift;
-};
