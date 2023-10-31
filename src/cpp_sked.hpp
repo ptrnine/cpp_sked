@@ -26,7 +26,7 @@ struct day_time {
     uint8_t seconds;
 };
 
-namespace operators {
+namespace literals {
     constexpr day_time parse_day_time(const char* str_time, size_t size) {
         uint8_t nums[3] = {0, 0, 0};
         size_t num_i = 0;
@@ -82,7 +82,7 @@ namespace operators {
         else
             return invalid_day_time_result<>()(res);
     }
-} // namespace operators
+} // namespace literals
 
 template <typename ClockT = std::chrono::system_clock>
 struct period {
@@ -176,7 +176,7 @@ public:
 protected:
     template <typename F>
     void set_handler(F&& h) {
-        handler = [f = std::forward<F>(h), once = once] {
+        handler = [f = std::forward<F>(h), once = once]() mutable {
             f();
             return once;
         };
